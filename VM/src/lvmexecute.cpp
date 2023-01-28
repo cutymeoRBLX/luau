@@ -193,7 +193,7 @@ inline bool luau_skipstep(uint8_t op)
     return op == LOP_PREPVARARGS || op == LOP_BREAK;
 }
 
-static int luau_onupdateline()
+extern "C" void luau_onupdateline()
 {
     std::cout << luau_currentline;
 }
@@ -211,7 +211,8 @@ static void luau_execute(lua_State* L)
     StkId base;
     TValue* k;
     const Instruction* pc;
-    currentline = -1; // Expose current executing line -cuty
+    luau_currentline = -1; // Expose current executing line -cuty
+    luau_onupdateline();
 
     LUAU_ASSERT(isLua(L->ci));
     LUAU_ASSERT(L->isactive);
