@@ -15,13 +15,16 @@
 #include "lbytecode.h"
 
 #include <string.h>
+#include <iostream>
 
+/*
 // Disable c99-designator to avoid the warning in CGOTO dispatch table
 #ifdef __clang__
 #if __has_warning("-Wc99-designator")
 #pragma clang diagnostic ignored "-Wc99-designator"
 #endif
 #endif
+*/
 
 // When working with VM code, pay attention to these rules for correctness:
 // 1. Many external Lua functions can fail; for them to fail and be able to generate a proper stack, we need to copy pc to L->ci->savedpc before the
@@ -110,6 +113,8 @@
 #else
 #define VM_USE_CGOTO 0
 #endif
+
+int luau_currentline = -1;
 
 /**
  * These macros help dispatching Luau opcodes using either case
@@ -201,6 +206,7 @@ static void luau_execute(lua_State* L)
     StkId base;
     TValue* k;
     const Instruction* pc;
+    currentline = -1; // Expose current executing line -cuty
 
     LUAU_ASSERT(isLua(L->ci));
     LUAU_ASSERT(L->isactive);
@@ -253,8 +259,10 @@ reentry:
 
 #if !VM_USE_CGOTO
         size_t dispatchOp = LUAU_INSN_OP(*pc);
+        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
 
     dispatchContinue:
+        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
         switch (dispatchOp)
 #endif
         {
