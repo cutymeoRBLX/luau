@@ -193,6 +193,11 @@ inline bool luau_skipstep(uint8_t op)
     return op == LOP_PREPVARARGS || op == LOP_BREAK;
 }
 
+static int luau_onupdateline()
+{
+    std::cout << luau_currentline;
+}
+
 template<bool SingleStep>
 static void luau_execute(lua_State* L)
 {
@@ -231,6 +236,8 @@ reentry:
     base = L->base;
     k = cl->l.p->k;
 
+    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+    luau_onupdateline();
     VM_NEXT(); // starts the interpreter "loop"
 
     {
@@ -259,10 +266,8 @@ reentry:
 
 #if !VM_USE_CGOTO
         size_t dispatchOp = LUAU_INSN_OP(*pc);
-        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
 
     dispatchContinue:
-        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
         switch (dispatchOp)
 #endif
         {
@@ -270,6 +275,8 @@ reentry:
             {
                 Instruction insn = *pc++;
                 LUAU_ASSERT(insn == 0);
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -279,6 +286,8 @@ reentry:
                 StkId ra = VM_REG(LUAU_INSN_A(insn));
 
                 setnilvalue(ra);
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -291,6 +300,8 @@ reentry:
 
                 pc += LUAU_INSN_C(insn);
                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -300,6 +311,8 @@ reentry:
                 StkId ra = VM_REG(LUAU_INSN_A(insn));
 
                 setnvalue(ra, LUAU_INSN_D(insn));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -310,6 +323,8 @@ reentry:
                 TValue* kv = VM_KV(LUAU_INSN_D(insn));
 
                 setobj2s(L, ra, kv);
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -320,6 +335,8 @@ reentry:
                 StkId rb = VM_REG(LUAU_INSN_B(insn));
 
                 setobj2s(L, ra, rb);
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -339,6 +356,8 @@ reentry:
                 if (LUAU_LIKELY(ttisstring(gkey(n)) && tsvalue(gkey(n)) == tsvalue(kv)) && !ttisnil(gval(n)))
                 {
                     setobj2s(L, ra, gval(n));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -350,6 +369,8 @@ reentry:
                     VM_PROTECT(luaV_gettable(L, &g, kv, ra));
                     // save cachedslot to accelerate future lookups; patches currently executing instruction since pc-2 rolls back two pc++
                     VM_PATCH_C(pc - 2, L->cachedslot);
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -371,6 +392,8 @@ reentry:
                 {
                     setobj2t(L, gval(n), ra);
                     luaC_barriert(L, h, ra);
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -382,6 +405,8 @@ reentry:
                     VM_PROTECT(luaV_settable(L, &g, kv, ra));
                     // save cachedslot to accelerate future lookups; patches currently executing instruction since pc-2 rolls back two pc++
                     VM_PATCH_C(pc - 2, L->cachedslot);
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -394,6 +419,8 @@ reentry:
                 TValue* v = ttisupval(ur) ? upvalue(ur)->v : ur;
 
                 setobj2s(L, ra, v);
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -406,6 +433,8 @@ reentry:
 
                 setobj(L, uv->v, ra);
                 luaC_barrier(L, uv, ra);
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -416,6 +445,8 @@ reentry:
 
                 if (L->openupval && L->openupval->v >= ra)
                     luaF_close(L, ra);
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -430,6 +461,8 @@ reentry:
                 {
                     setobj2s(L, ra, kv);
                     pc++; // skip over AUX
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -441,6 +474,8 @@ reentry:
 
                     setobj2s(L, ra, L->top - 1);
                     L->top--;
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -466,6 +501,8 @@ reentry:
                     if (LUAU_LIKELY(ttisstring(gkey(n)) && tsvalue(gkey(n)) == tsvalue(kv) && !ttisnil(gval(n))))
                     {
                         setobj2s(L, ra, gval(n));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else if (!h->metatable)
@@ -481,6 +518,8 @@ reentry:
                         }
 
                         setobj2s(L, ra, res);
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else
@@ -490,6 +529,8 @@ reentry:
                         VM_PROTECT(luaV_gettable(L, rb, kv, ra));
                         // save cachedslot to accelerate future lookups; patches currently executing instruction since pc-2 rolls back two pc++
                         VM_PATCH_C(pc - 2, L->cachedslot);
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                 }
@@ -511,6 +552,8 @@ reentry:
                         VM_PROTECT(luaV_callTM(L, 2, LUAU_INSN_A(insn)));
                         // save cachedslot to accelerate future lookups; patches currently executing instruction since pc-2 rolls back two pc++
                         VM_PATCH_C(pc - 2, L->cachedslot);
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else if (ttisvector(rb))
@@ -529,6 +572,8 @@ reentry:
                         {
                             const float* v = rb->value.v; // silences ubsan when indexing v[]
                             setnvalue(ra, v[ic]);
+                            luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                            luau_onupdateline();
                             VM_NEXT();
                         }
 
@@ -548,6 +593,8 @@ reentry:
                             VM_PROTECT(luaV_callTM(L, 2, LUAU_INSN_A(insn)));
                             // save cachedslot to accelerate future lookups; patches currently executing instruction since pc-2 rolls back two pc++
                             VM_PATCH_C(pc - 2, L->cachedslot);
+                            luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                            luau_onupdateline();
                             VM_NEXT();
                         }
 
@@ -559,6 +606,8 @@ reentry:
 
                 // slow-path, may invoke Lua calls via __index metamethod
                 VM_PROTECT(luaV_gettable(L, rb, kv, ra));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -584,6 +633,8 @@ reentry:
                     {
                         setobj2t(L, gval(n), ra);
                         luaC_barriert(L, h, ra);
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else if (fastnotm(h->metatable, TM_NEWINDEX) && !h->readonly)
@@ -596,6 +647,8 @@ reentry:
                         VM_PATCH_C(pc - 2, cachedslot);
                         setobj2t(L, res, ra);
                         luaC_barriert(L, h, ra);
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else
@@ -605,6 +658,8 @@ reentry:
                         VM_PROTECT(luaV_settable(L, rb, kv, ra));
                         // save cachedslot to accelerate future lookups; patches currently executing instruction since pc-2 rolls back two pc++
                         VM_PATCH_C(pc - 2, L->cachedslot);
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                 }
@@ -627,12 +682,16 @@ reentry:
                         VM_PROTECT(luaV_callTM(L, 3, -1));
                         // save cachedslot to accelerate future lookups; patches currently executing instruction since pc-2 rolls back two pc++
                         VM_PATCH_C(pc - 2, L->cachedslot);
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else
                     {
                         // slow-path, may invoke Lua calls via __newindex metamethod
                         VM_PROTECT(luaV_settable(L, rb, kv, ra));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                 }
@@ -657,6 +716,8 @@ reentry:
                     if (LUAU_LIKELY(unsigned(index - 1) < unsigned(h->sizearray) && !h->metatable && double(index) == indexd))
                     {
                         setobj2s(L, ra, &h->array[unsigned(index - 1)]);
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
 
@@ -665,6 +726,8 @@ reentry:
 
                 // slow-path: handles out of bounds array lookups, non-integer numeric keys, non-array table lookup, __index MT calls
                 VM_PROTECT(luaV_gettable(L, rb, rc, ra));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -688,6 +751,8 @@ reentry:
                     {
                         setobj2t(L, &h->array[unsigned(index - 1)], ra);
                         luaC_barriert(L, h, ra);
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
 
@@ -696,6 +761,8 @@ reentry:
 
                 // slow-path: handles out of bounds array assignments, non-integer numeric keys, non-array table access, __newindex MT calls
                 VM_PROTECT(luaV_settable(L, rb, rc, ra));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -714,6 +781,8 @@ reentry:
                     if (LUAU_LIKELY(unsigned(c) < unsigned(h->sizearray) && !h->metatable))
                     {
                         setobj2s(L, ra, &h->array[c]);
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
 
@@ -724,6 +793,8 @@ reentry:
                 TValue n;
                 setnvalue(&n, c + 1);
                 VM_PROTECT(luaV_gettable(L, rb, &n, ra));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -743,6 +814,8 @@ reentry:
                     {
                         setobj2t(L, &h->array[c], ra);
                         luaC_barriert(L, h, ra);
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
 
@@ -753,6 +826,8 @@ reentry:
                 TValue n;
                 setnvalue(&n, c + 1);
                 VM_PROTECT(luaV_settable(L, rb, &n, ra));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -796,6 +871,8 @@ reentry:
                 }
 
                 VM_PROTECT(luaC_checkGC(L));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -973,6 +1050,8 @@ reentry:
                     cl = ccl;
                     base = L->base;
                     k = p->k;
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -1006,6 +1085,8 @@ reentry:
                     L->top = (nresults == LUA_MULTRET) ? res : cip->top;
 
                     base = L->base; // stack may have been reallocated, so we need to refresh base ptr
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -1071,6 +1152,8 @@ reentry:
                 cl = nextcl;
                 base = L->base;
                 k = nextproto->k;
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -1080,6 +1163,8 @@ reentry:
 
                 pc += LUAU_INSN_D(insn);
                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -1090,6 +1175,8 @@ reentry:
 
                 pc += l_isfalse(ra) ? 0 : LUAU_INSN_D(insn);
                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -1100,6 +1187,8 @@ reentry:
 
                 pc += l_isfalse(ra) ? LUAU_INSN_D(insn) : 0;
                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -1118,26 +1207,36 @@ reentry:
                     case LUA_TNIL:
                         pc += LUAU_INSN_D(insn);
                         LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
 
                     case LUA_TBOOLEAN:
                         pc += bvalue(ra) == bvalue(rb) ? LUAU_INSN_D(insn) : 1;
                         LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
 
                     case LUA_TLIGHTUSERDATA:
                         pc += pvalue(ra) == pvalue(rb) ? LUAU_INSN_D(insn) : 1;
                         LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
 
                     case LUA_TNUMBER:
                         pc += nvalue(ra) == nvalue(rb) ? LUAU_INSN_D(insn) : 1;
                         LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
 
                     case LUA_TVECTOR:
                         pc += luai_veceq(vvalue(ra), vvalue(rb)) ? LUAU_INSN_D(insn) : 1;
                         LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
 
                     case LUA_TSTRING:
@@ -1145,6 +1244,8 @@ reentry:
                     case LUA_TTHREAD:
                         pc += gcvalue(ra) == gcvalue(rb) ? LUAU_INSN_D(insn) : 1;
                         LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
 
                     case LUA_TTABLE:
@@ -1157,6 +1258,8 @@ reentry:
                             {
                                 pc += hvalue(ra) == hvalue(rb) ? LUAU_INSN_D(insn) : 1;
                                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                                luau_onupdateline();
                                 VM_NEXT();
                             }
                         }
@@ -1173,6 +1276,8 @@ reentry:
                             {
                                 pc += uvalue(ra) == uvalue(rb) ? LUAU_INSN_D(insn) : 1;
                                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                                luau_onupdateline();
                                 VM_NEXT();
                             }
                             else if (ttisfunction(fn) && clvalue(fn)->isC)
@@ -1189,6 +1294,8 @@ reentry:
                                 VM_PROTECT(luaV_callTM(L, 2, res));
                                 pc += !l_isfalse(&base[res]) ? LUAU_INSN_D(insn) : 1;
                                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                                luau_onupdateline();
                                 VM_NEXT();
                             }
                         }
@@ -1207,12 +1314,16 @@ reentry:
 
                     pc += (res == 1) ? LUAU_INSN_D(insn) : 1;
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
                 {
                     pc += 1;
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -1232,26 +1343,36 @@ reentry:
                     case LUA_TNIL:
                         pc += 1;
                         LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
 
                     case LUA_TBOOLEAN:
                         pc += bvalue(ra) != bvalue(rb) ? LUAU_INSN_D(insn) : 1;
                         LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
 
                     case LUA_TLIGHTUSERDATA:
                         pc += pvalue(ra) != pvalue(rb) ? LUAU_INSN_D(insn) : 1;
                         LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
 
                     case LUA_TNUMBER:
                         pc += nvalue(ra) != nvalue(rb) ? LUAU_INSN_D(insn) : 1;
                         LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
 
                     case LUA_TVECTOR:
                         pc += !luai_veceq(vvalue(ra), vvalue(rb)) ? LUAU_INSN_D(insn) : 1;
                         LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
 
                     case LUA_TSTRING:
@@ -1259,6 +1380,8 @@ reentry:
                     case LUA_TTHREAD:
                         pc += gcvalue(ra) != gcvalue(rb) ? LUAU_INSN_D(insn) : 1;
                         LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
 
                     case LUA_TTABLE:
@@ -1271,6 +1394,8 @@ reentry:
                             {
                                 pc += hvalue(ra) != hvalue(rb) ? LUAU_INSN_D(insn) : 1;
                                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                                luau_onupdateline();
                                 VM_NEXT();
                             }
                         }
@@ -1287,6 +1412,8 @@ reentry:
                             {
                                 pc += uvalue(ra) != uvalue(rb) ? LUAU_INSN_D(insn) : 1;
                                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                                luau_onupdateline();
                                 VM_NEXT();
                             }
                             else if (ttisfunction(fn) && clvalue(fn)->isC)
@@ -1303,6 +1430,8 @@ reentry:
                                 VM_PROTECT(luaV_callTM(L, 2, res));
                                 pc += l_isfalse(&base[res]) ? LUAU_INSN_D(insn) : 1;
                                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                                luau_onupdateline();
                                 VM_NEXT();
                             }
                         }
@@ -1321,12 +1450,16 @@ reentry:
 
                     pc += (res == 0) ? LUAU_INSN_D(insn) : 1;
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
                 {
                     pc += LUAU_INSN_D(insn);
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -1344,6 +1477,8 @@ reentry:
                 {
                     pc += nvalue(ra) <= nvalue(rb) ? LUAU_INSN_D(insn) : 1;
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 // fast-path: string
@@ -1351,6 +1486,8 @@ reentry:
                 {
                     pc += luaV_strcmp(tsvalue(ra), tsvalue(rb)) <= 0 ? LUAU_INSN_D(insn) : 1;
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -1360,6 +1497,8 @@ reentry:
 
                     pc += (res == 1) ? LUAU_INSN_D(insn) : 1;
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -1377,6 +1516,8 @@ reentry:
                 {
                     pc += !(nvalue(ra) <= nvalue(rb)) ? LUAU_INSN_D(insn) : 1;
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 // fast-path: string
@@ -1384,6 +1525,8 @@ reentry:
                 {
                     pc += !(luaV_strcmp(tsvalue(ra), tsvalue(rb)) <= 0) ? LUAU_INSN_D(insn) : 1;
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -1393,6 +1536,8 @@ reentry:
 
                     pc += (res == 0) ? LUAU_INSN_D(insn) : 1;
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -1410,6 +1555,8 @@ reentry:
                 {
                     pc += nvalue(ra) < nvalue(rb) ? LUAU_INSN_D(insn) : 1;
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 // fast-path: string
@@ -1417,6 +1564,8 @@ reentry:
                 {
                     pc += luaV_strcmp(tsvalue(ra), tsvalue(rb)) < 0 ? LUAU_INSN_D(insn) : 1;
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -1426,6 +1575,8 @@ reentry:
 
                     pc += (res == 1) ? LUAU_INSN_D(insn) : 1;
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -1443,6 +1594,8 @@ reentry:
                 {
                     pc += !(nvalue(ra) < nvalue(rb)) ? LUAU_INSN_D(insn) : 1;
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 // fast-path: string
@@ -1450,6 +1603,8 @@ reentry:
                 {
                     pc += !(luaV_strcmp(tsvalue(ra), tsvalue(rb)) < 0) ? LUAU_INSN_D(insn) : 1;
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -1459,6 +1614,8 @@ reentry:
 
                     pc += (res == 0) ? LUAU_INSN_D(insn) : 1;
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -1474,6 +1631,8 @@ reentry:
                 if (ttisnumber(rb) && ttisnumber(rc))
                 {
                     setnvalue(ra, nvalue(rb) + nvalue(rc));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else if (ttisvector(rb) && ttisvector(rc))
@@ -1481,6 +1640,8 @@ reentry:
                     const float* vb = rb->value.v;
                     const float* vc = rc->value.v;
                     setvvalue(ra, vb[0] + vc[0], vb[1] + vc[1], vb[2] + vc[2], vb[3] + vc[3]);
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -1498,12 +1659,16 @@ reentry:
                         L->top = top + 3;
 
                         VM_PROTECT(luaV_callTM(L, 2, LUAU_INSN_A(insn)));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else
                     {
                         // slow-path, may invoke C/Lua via metamethods
                         VM_PROTECT(luaV_doarith(L, ra, rb, rc, TM_ADD));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                 }
@@ -1520,6 +1685,8 @@ reentry:
                 if (ttisnumber(rb) && ttisnumber(rc))
                 {
                     setnvalue(ra, nvalue(rb) - nvalue(rc));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else if (ttisvector(rb) && ttisvector(rc))
@@ -1527,6 +1694,8 @@ reentry:
                     const float* vb = rb->value.v;
                     const float* vc = rc->value.v;
                     setvvalue(ra, vb[0] - vc[0], vb[1] - vc[1], vb[2] - vc[2], vb[3] - vc[3]);
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -1544,12 +1713,16 @@ reentry:
                         L->top = top + 3;
 
                         VM_PROTECT(luaV_callTM(L, 2, LUAU_INSN_A(insn)));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else
                     {
                         // slow-path, may invoke C/Lua via metamethods
                         VM_PROTECT(luaV_doarith(L, ra, rb, rc, TM_SUB));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                 }
@@ -1566,6 +1739,8 @@ reentry:
                 if (ttisnumber(rb) && ttisnumber(rc))
                 {
                     setnvalue(ra, nvalue(rb) * nvalue(rc));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else if (ttisvector(rb) && ttisnumber(rc))
@@ -1573,6 +1748,8 @@ reentry:
                     const float* vb = rb->value.v;
                     float vc = cast_to(float, nvalue(rc));
                     setvvalue(ra, vb[0] * vc, vb[1] * vc, vb[2] * vc, vb[3] * vc);
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else if (ttisvector(rb) && ttisvector(rc))
@@ -1580,6 +1757,8 @@ reentry:
                     const float* vb = rb->value.v;
                     const float* vc = rc->value.v;
                     setvvalue(ra, vb[0] * vc[0], vb[1] * vc[1], vb[2] * vc[2], vb[3] * vc[3]);
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else if (ttisnumber(rb) && ttisvector(rc))
@@ -1587,6 +1766,8 @@ reentry:
                     float vb = cast_to(float, nvalue(rb));
                     const float* vc = rc->value.v;
                     setvvalue(ra, vb * vc[0], vb * vc[1], vb * vc[2], vb * vc[3]);
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -1605,12 +1786,16 @@ reentry:
                         L->top = top + 3;
 
                         VM_PROTECT(luaV_callTM(L, 2, LUAU_INSN_A(insn)));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else
                     {
                         // slow-path, may invoke C/Lua via metamethods
                         VM_PROTECT(luaV_doarith(L, ra, rb, rc, TM_MUL));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                 }
@@ -1627,6 +1812,8 @@ reentry:
                 if (ttisnumber(rb) && ttisnumber(rc))
                 {
                     setnvalue(ra, nvalue(rb) / nvalue(rc));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else if (ttisvector(rb) && ttisnumber(rc))
@@ -1634,6 +1821,8 @@ reentry:
                     const float* vb = rb->value.v;
                     float vc = cast_to(float, nvalue(rc));
                     setvvalue(ra, vb[0] / vc, vb[1] / vc, vb[2] / vc, vb[3] / vc);
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else if (ttisvector(rb) && ttisvector(rc))
@@ -1641,6 +1830,8 @@ reentry:
                     const float* vb = rb->value.v;
                     const float* vc = rc->value.v;
                     setvvalue(ra, vb[0] / vc[0], vb[1] / vc[1], vb[2] / vc[2], vb[3] / vc[3]);
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else if (ttisnumber(rb) && ttisvector(rc))
@@ -1648,6 +1839,8 @@ reentry:
                     float vb = cast_to(float, nvalue(rb));
                     const float* vc = rc->value.v;
                     setvvalue(ra, vb / vc[0], vb / vc[1], vb / vc[2], vb / vc[3]);
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -1666,12 +1859,16 @@ reentry:
                         L->top = top + 3;
 
                         VM_PROTECT(luaV_callTM(L, 2, LUAU_INSN_A(insn)));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else
                     {
                         // slow-path, may invoke C/Lua via metamethods
                         VM_PROTECT(luaV_doarith(L, ra, rb, rc, TM_DIV));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                 }
@@ -1690,12 +1887,16 @@ reentry:
                     double nb = nvalue(rb);
                     double nc = nvalue(rc);
                     setnvalue(ra, luai_nummod(nb, nc));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
                 {
                     // slow-path, may invoke C/Lua via metamethods
                     VM_PROTECT(luaV_doarith(L, ra, rb, rc, TM_MOD));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -1711,12 +1912,16 @@ reentry:
                 if (ttisnumber(rb) && ttisnumber(rc))
                 {
                     setnvalue(ra, pow(nvalue(rb), nvalue(rc)));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
                 {
                     // slow-path, may invoke C/Lua via metamethods
                     VM_PROTECT(luaV_doarith(L, ra, rb, rc, TM_POW));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -1732,12 +1937,16 @@ reentry:
                 if (ttisnumber(rb))
                 {
                     setnvalue(ra, nvalue(rb) + nvalue(kv));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
                 {
                     // slow-path, may invoke C/Lua via metamethods
                     VM_PROTECT(luaV_doarith(L, ra, rb, kv, TM_ADD));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -1753,12 +1962,16 @@ reentry:
                 if (ttisnumber(rb))
                 {
                     setnvalue(ra, nvalue(rb) - nvalue(kv));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
                 {
                     // slow-path, may invoke C/Lua via metamethods
                     VM_PROTECT(luaV_doarith(L, ra, rb, kv, TM_SUB));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -1774,6 +1987,8 @@ reentry:
                 if (ttisnumber(rb))
                 {
                     setnvalue(ra, nvalue(rb) * nvalue(kv));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else if (ttisvector(rb))
@@ -1781,6 +1996,8 @@ reentry:
                     const float* vb = rb->value.v;
                     float vc = cast_to(float, nvalue(kv));
                     setvvalue(ra, vb[0] * vc, vb[1] * vc, vb[2] * vc, vb[3] * vc);
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -1798,12 +2015,16 @@ reentry:
                         L->top = top + 3;
 
                         VM_PROTECT(luaV_callTM(L, 2, LUAU_INSN_A(insn)));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else
                     {
                         // slow-path, may invoke C/Lua via metamethods
                         VM_PROTECT(luaV_doarith(L, ra, rb, kv, TM_MUL));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                 }
@@ -1820,6 +2041,8 @@ reentry:
                 if (ttisnumber(rb))
                 {
                     setnvalue(ra, nvalue(rb) / nvalue(kv));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else if (ttisvector(rb))
@@ -1827,6 +2050,8 @@ reentry:
                     const float* vb = rb->value.v;
                     float vc = cast_to(float, nvalue(kv));
                     setvvalue(ra, vb[0] / vc, vb[1] / vc, vb[2] / vc, vb[3] / vc);
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -1844,12 +2069,16 @@ reentry:
                         L->top = top + 3;
 
                         VM_PROTECT(luaV_callTM(L, 2, LUAU_INSN_A(insn)));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else
                     {
                         // slow-path, may invoke C/Lua via metamethods
                         VM_PROTECT(luaV_doarith(L, ra, rb, kv, TM_DIV));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                 }
@@ -1868,12 +2097,16 @@ reentry:
                     double nb = nvalue(rb);
                     double nk = nvalue(kv);
                     setnvalue(ra, luai_nummod(nb, nk));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
                 {
                     // slow-path, may invoke C/Lua via metamethods
                     VM_PROTECT(luaV_doarith(L, ra, rb, kv, TM_MOD));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -1895,12 +2128,16 @@ reentry:
                     double r = (nk == 2.0) ? nb * nb : (nk == 0.5) ? sqrt(nb) : (nk == 3.0) ? nb * nb * nb : pow(nb, nk);
 
                     setnvalue(ra, r);
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
                 {
                     // slow-path, may invoke C/Lua via metamethods
                     VM_PROTECT(luaV_doarith(L, ra, rb, kv, TM_POW));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -1913,6 +2150,8 @@ reentry:
                 StkId rc = VM_REG(LUAU_INSN_C(insn));
 
                 setobj2s(L, ra, l_isfalse(rb) ? rb : rc);
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -1924,6 +2163,8 @@ reentry:
                 StkId rc = VM_REG(LUAU_INSN_C(insn));
 
                 setobj2s(L, ra, l_isfalse(rb) ? rc : rb);
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -1935,6 +2176,8 @@ reentry:
                 TValue* kv = VM_KV(LUAU_INSN_C(insn));
 
                 setobj2s(L, ra, l_isfalse(rb) ? rb : kv);
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -1946,6 +2189,8 @@ reentry:
                 TValue* kv = VM_KV(LUAU_INSN_C(insn));
 
                 setobj2s(L, ra, l_isfalse(rb) ? kv : rb);
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -1962,6 +2207,8 @@ reentry:
 
                 setobj2s(L, ra, base + b);
                 VM_PROTECT(luaC_checkGC(L));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -1973,6 +2220,8 @@ reentry:
 
                 int res = l_isfalse(rb);
                 setbvalue(ra, res);
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -1986,12 +2235,16 @@ reentry:
                 if (ttisnumber(rb))
                 {
                     setnvalue(ra, -nvalue(rb));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else if (ttisvector(rb))
                 {
                     const float* vb = rb->value.v;
                     setvvalue(ra, -vb[0], -vb[1], -vb[2], -vb[3]);
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -2008,12 +2261,16 @@ reentry:
                         L->top = top + 2;
 
                         VM_PROTECT(luaV_callTM(L, 1, LUAU_INSN_A(insn)));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else
                     {
                         // slow-path, may invoke C/Lua via metamethods
                         VM_PROTECT(luaV_doarith(L, ra, rb, rb, TM_UNM));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                 }
@@ -2033,12 +2290,16 @@ reentry:
                     if (fastnotm(h->metatable, TM_LEN))
                     {
                         setnvalue(ra, cast_num(luaH_getn(h)));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else
                     {
                         // slow-path, may invoke C/Lua via metamethods
                         VM_PROTECT(luaV_dolen(L, ra, rb));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                 }
@@ -2047,12 +2308,16 @@ reentry:
                 {
                     TString* ts = tsvalue(rb);
                     setnvalue(ra, cast_num(ts->len));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
                 {
                     // slow-path, may invoke C/Lua via metamethods
                     VM_PROTECT(luaV_dolen(L, ra, rb));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -2068,6 +2333,8 @@ reentry:
 
                 sethvalue(L, ra, luaH_new(L, aux, b == 0 ? 0 : (1 << (b - 1))));
                 VM_PROTECT(luaC_checkGC(L));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -2081,6 +2348,8 @@ reentry:
 
                 sethvalue(L, ra, luaH_clone(L, hvalue(kv)));
                 VM_PROTECT(luaC_checkGC(L));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -2118,6 +2387,8 @@ reentry:
                     setobj2t(L, &array[index + i - 1], rb + i);
 
                 luaC_barrierfast(L, h);
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -2142,6 +2413,8 @@ reentry:
                 // Note: make sure the loop condition is exactly the same between this and LOP_FORNLOOP so that we handle NaN/etc. consistently
                 pc += (step > 0 ? idx <= limit : limit <= idx) ? 0 : LUAU_INSN_D(insn);
                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -2163,11 +2436,15 @@ reentry:
                 {
                     pc += LUAU_INSN_D(insn);
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
                 {
                     // fallthrough to exit
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -2227,6 +2504,8 @@ reentry:
 
                 pc += LUAU_INSN_D(insn);
                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -2257,6 +2536,8 @@ reentry:
                     if (int(aux) < 0 && (unsigned(index) >= unsigned(sizearray) || ttisnil(&h->array[index])))
                     {
                         pc++;
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
 
@@ -2273,6 +2554,8 @@ reentry:
 
                             pc += LUAU_INSN_D(insn);
                             LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                            luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                            luau_onupdateline();
                             VM_NEXT();
                         }
 
@@ -2294,6 +2577,8 @@ reentry:
 
                             pc += LUAU_INSN_D(insn);
                             LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                            luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                            luau_onupdateline();
                             VM_NEXT();
                         }
 
@@ -2302,6 +2587,8 @@ reentry:
 
                     // fallthrough to exit
                     pc++;
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -2326,6 +2613,8 @@ reentry:
                     // note that we need to increment pc by 1 to exit the loop since we need to skip over aux
                     pc += ttisnil(ra + 3) ? 1 : LUAU_INSN_D(insn);
                     LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -2350,6 +2639,8 @@ reentry:
 
                 pc += LUAU_INSN_D(insn);
                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -2379,6 +2670,8 @@ reentry:
 
                 pc += LUAU_INSN_D(insn);
                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -2403,6 +2696,8 @@ reentry:
                         setobj2s(L, ra + j, base - n + j);
 
                     L->top = ra + n;
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
                 else
@@ -2413,6 +2708,8 @@ reentry:
                         setobj2s(L, ra + j, base - n + j);
                     for (int j = n; j < b; j++)
                         setnilvalue(ra + j);
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -2471,6 +2768,8 @@ reentry:
                     VM_PROTECT(luaC_checkGC(L));
 
                 pc += kcl->nupvalues;
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -2501,6 +2800,8 @@ reentry:
 
                 L->base = base;
                 L->top = L->ci->top;
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -2511,6 +2812,8 @@ reentry:
 
                 pc += LUAU_INSN_D(insn);
                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -2522,6 +2825,8 @@ reentry:
                 TValue* kv = VM_KV(aux);
 
                 setobj2s(L, ra, kv);
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -2532,6 +2837,8 @@ reentry:
 
                 pc += LUAU_INSN_E(insn);
                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -2569,17 +2876,23 @@ reentry:
 
                         pc += skip + 1; // skip instructions that compute function as well as CALL
                         LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else
                     {
                         // continue execution through the fallback code
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                 }
                 else
                 {
                     // continue execution through the fallback code
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -2593,6 +2906,8 @@ reentry:
                 hits = (hits < (1 << 23) - 1) ? hits + 1 : hits;
                 VM_PATCH_E(pc - 1, hits);
 
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -2647,17 +2962,23 @@ reentry:
 
                         pc += skip + 1; // skip instructions that compute function as well as CALL
                         LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else
                     {
                         // continue execution through the fallback code
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                 }
                 else
                 {
                     // continue execution through the fallback code
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -2697,17 +3018,23 @@ reentry:
 
                         pc += skip + 1; // skip instructions that compute function as well as CALL
                         LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else
                     {
                         // continue execution through the fallback code
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                 }
                 else
                 {
                     // continue execution through the fallback code
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -2747,17 +3074,23 @@ reentry:
 
                         pc += skip + 1; // skip instructions that compute function as well as CALL
                         LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                     else
                     {
                         // continue execution through the fallback code
+                        luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                        luau_onupdateline();
                         VM_NEXT();
                     }
                 }
                 else
                 {
                     // continue execution through the fallback code
+                    luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                    luau_onupdateline();
                     VM_NEXT();
                 }
             }
@@ -2791,6 +3124,8 @@ reentry:
                 // condition is equivalent to: int(ttisnil(ra)) != (aux >> 31)
                 pc += int((ttype(ra) - 1) ^ aux) < 0 ? LUAU_INSN_D(insn) : 1;
                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -2802,6 +3137,8 @@ reentry:
 
                 pc += int(ttisboolean(ra) && bvalue(ra) == int(aux & 1)) != (aux >> 31) ? LUAU_INSN_D(insn) : 1;
                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -2824,6 +3161,8 @@ reentry:
                 pc += int(ttisnumber(ra) && nvalue(ra) == nvalue(kv)) != (aux >> 31) ? LUAU_INSN_D(insn) : 1;
 #endif
                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
@@ -2837,6 +3176,8 @@ reentry:
 
                 pc += int(ttisstring(ra) && gcvalue(ra) == gcvalue(kv)) != (aux >> 31) ? LUAU_INSN_D(insn) : 1;
                 LUAU_ASSERT(unsigned(pc - cl->l.p->code) < unsigned(cl->l.p->sizecode));
+                luau_currentline = cl->isC ? -1 : luaG_getline(cl->l.p, pcRel(pc, cl->l.p));
+                luau_onupdateline();
                 VM_NEXT();
             }
 
