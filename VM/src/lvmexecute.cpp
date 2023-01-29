@@ -195,7 +195,7 @@ inline bool luau_skipstep(uint8_t op)
 
 extern "C" void luau_onupdateline()
 {
-    std::cout << luau_currentline;
+    luau_currentline = luau_currentline;
 }
 
 template<bool SingleStep>
