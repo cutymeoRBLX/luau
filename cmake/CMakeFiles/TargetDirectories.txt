@@ -1,0 +1,16 @@
+/Users/HuyenNguyen/Downloads/ParallelsDesktopCrack-main/LuauInLuau/luau/cmake/CMakeFiles/Luau.Common.dir
+/Users/HuyenNguyen/Downloads/ParallelsDesktopCrack-main/LuauInLuau/luau/cmake/CMakeFiles/Luau.Ast.dir
+/Users/HuyenNguyen/Downloads/ParallelsDesktopCrack-main/LuauInLuau/luau/cmake/CMakeFiles/Luau.Compiler.dir
+/Users/HuyenNguyen/Downloads/ParallelsDesktopCrack-main/LuauInLuau/luau/cmake/CMakeFiles/Luau.Analysis.dir
+/Users/HuyenNguyen/Downloads/ParallelsDesktopCrack-main/LuauInLuau/luau/cmake/CMakeFiles/Luau.CodeGen.dir
+/Users/HuyenNguyen/Downloads/ParallelsDesktopCrack-main/LuauInLuau/luau/cmake/CMakeFiles/Luau.VM.dir
+/Users/HuyenNguyen/Downloads/ParallelsDesktopCrack-main/LuauInLuau/luau/cmake/CMakeFiles/isocline.dir
+/Users/HuyenNguyen/Downloads/ParallelsDesktopCrack-main/LuauInLuau/luau/cmake/CMakeFiles/Luau.Repl.CLI.dir
+/Users/HuyenNguyen/Downloads/ParallelsDesktopCrack-main/LuauInLuau/luau/cmake/CMakeFiles/Luau.Analyze.CLI.dir
+/Users/HuyenNguyen/Downloads/ParallelsDesktopCrack-main/LuauInLuau/luau/cmake/CMakeFiles/Luau.Ast.CLI.dir
+/Users/HuyenNguyen/Downloads/ParallelsDesktopCrack-main/LuauInLuau/luau/cmake/CMakeFiles/Luau.Reduce.CLI.dir
+/Users/HuyenNguyen/Downloads/ParallelsDesktopCrack-main/LuauInLuau/luau/cmake/CMakeFiles/Luau.UnitTest.dir
+/Users/HuyenNguyen/Downloads/ParallelsDesktopCrack-main/LuauInLuau/luau/cmake/CMakeFiles/Luau.Conformance.dir
+/Users/HuyenNguyen/Downloads/ParallelsDesktopCrack-main/LuauInLuau/luau/cmake/CMakeFiles/Luau.CLI.Test.dir
+/Users/HuyenNguyen/Downloads/ParallelsDesktopCrack-main/LuauInLuau/luau/cmake/CMakeFiles/edit_cache.dir
+/Users/HuyenNguyen/Downloads/ParallelsDesktopCrack-main/LuauInLuau/luau/cmake/CMakeFiles/rebuild_cache.dir

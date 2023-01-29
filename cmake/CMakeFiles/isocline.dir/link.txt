@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/usr/bin/ar qc libisocline.a CMakeFiles/isocline.dir/extern/isocline/src/isocline.c.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib libisocline.a
